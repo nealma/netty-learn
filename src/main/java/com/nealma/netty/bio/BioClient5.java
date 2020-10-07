@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 /**
  * BIO Client
@@ -15,60 +16,67 @@ import java.util.Scanner;
  * @blog nealma.com
  */
 public class BioClient5 {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         final String host = "127.0.0.1";
         final int port = 8000;
+        Socket socket = new Socket(host, port);
+
+        // 控制台标准输入
+        Scanner reader = new Scanner(System.in);
+
+        while (reader.hasNextLine()) {
+            String message = reader.nextLine();
+
+            // 发送数据
+            send(socket, message);
+
+            TimeUnit.SECONDS.sleep(2L);
+
+            // 接收数据
+            receive(socket);
+        }
+    }
+
+    public static String getThreadInfo() {
+        return "[Id=" + Thread.currentThread().getId() + ", Name=" + Thread.currentThread().getName() + "]";
+    }
+
+    public static void send(Socket socket,String message) {
+        DataOutputStream dataOutputStream = null;
         try {
-            Socket socket = new Socket(host, port);
-            Scanner reader = new Scanner(System.in);
-            DataOutputStream writer = new DataOutputStream(socket.getOutputStream());
-
-            // 结束通信
-            boolean stop = false;
-
-            while (reader.hasNextLine() && !stop) {
-                String message = reader.nextLine();
-                byte[] data = message.getBytes();
-                byte type = 1;
-                int len = data.length + 5;
-                // 设置数据类型
-                writer.writeByte(type);
-                // 设置数据长度
-                writer.writeInt(len);
-                // 设置数据内容
-                writer.write(data);
-                // 为了确保数据完全发送，通过调用 flush() 方法刷新缓冲区
-                writer.flush();
-                if ("stop".equals(message)) {
-                    stop = true;
-                }
-            }
-
-            // 关闭 socket
-            socket.shutdownOutput();
-
-            final DataInputStream readerOfServer = new DataInputStream(socket.getInputStream());
-
-            // 有客户前来上门吃饭（读取输入数据流并存储到缓冲区）
-            System.out.println(getThreadInfo() + " 有客户端连接，读取输入数据流");
-            byte type = readerOfServer.readByte();
-            int len = readerOfServer.readInt();
+            System.out.println(getThreadInfo() + " ###### 发送数据 ###### ");
+            System.out.println(getThreadInfo() + " >>> " + message);
+            dataOutputStream = new DataOutputStream(socket.getOutputStream());
+            byte[] data = message.getBytes();
+            byte type = 1;
+            int len = data.length + 5;
+            // 设置数据类型
+            dataOutputStream.writeByte(type);
+            // 设置数据长度
+            dataOutputStream.writeInt(len);
+            // 设置数据内容
+            dataOutputStream.write(data);
+            // 为了确保数据完全发送，通过调用 flush() 方法刷新缓冲区
+            dataOutputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void receive(Socket socket) {
+        DataInputStream dataInputStream = null;
+        try {
+            dataInputStream = new DataInputStream(socket.getInputStream());
+            byte type = dataInputStream.readByte();
+            int len = dataInputStream.readInt();
             byte[] data = new byte[len - 5];
-            readerOfServer.readFully(data);
-            String message = new String(data, "UTF-8");
+            dataInputStream.readFully(data);
 
-            System.out.println(getThreadInfo() + " 获取服务端的数据类型: " + type);
-            System.out.println(getThreadInfo() + " 获取服务端的数据长度: " + len);
-            System.out.println(getThreadInfo() + " 获取服务端的数据内容: " + message);
-
-            socket.close();
-            System.out.println("socket close");
+            String message = new String(data);
+            System.out.println(getThreadInfo() + " ###### 收到数据 ###### ");
+            System.out.println(getThreadInfo() + " <<< 数据 类型: " + type + " 长度: " + len + " 内容: " + message);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static String getThreadInfo() {
-        return "Id = " + Thread.currentThread().getId() + ", Name = " + Thread.currentThread().getName();
-    }
 }
