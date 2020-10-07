@@ -24,9 +24,17 @@ public class BioClient5 {
         // 控制台标准输入
         Scanner reader = new Scanner(System.in);
 
+        // 虽然可以连续通信，但是不能关闭 socket，需要加入控制字符串 quit
+        String message = null;
         while (reader.hasNextLine()) {
-            String message = reader.nextLine();
-
+            message = reader.nextLine();
+            if ("quit".equals(message)) {
+                System.out.println(getThreadInfo() + " ###### 结束通信 ヾ(ToT)Bye~Bye~ ###### ");
+                socket.shutdownOutput();
+                socket.shutdownInput();
+                socket.close();
+                break;
+            }
             // 发送数据
             send(socket, message);
 
@@ -35,6 +43,8 @@ public class BioClient5 {
             // 接收数据
             receive(socket);
         }
+        // 关闭连接
+        socket.close();
     }
 
     public static String getThreadInfo() {
@@ -73,7 +83,7 @@ public class BioClient5 {
 
             String message = new String(data);
             System.out.println(getThreadInfo() + " ###### 收到数据 ###### ");
-            System.out.println(getThreadInfo() + " <<< 数据 类型: " + type + " 长度: " + len + " 内容: " + message);
+            System.out.println(getThreadInfo() + " <<< 数据 类型: " + type + "，长度: " + len + "，内容: " + message);
         } catch (IOException e) {
             e.printStackTrace();
         }
